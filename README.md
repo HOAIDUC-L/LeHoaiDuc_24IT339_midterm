@@ -212,7 +212,7 @@ Hệ điều hành NetBSD có sẵn trình biên dịch C (`cc` / `gcc`) và ti�
 ```sh
 make clean && make
 ```
-*Lưu ý:* `Makefile` của dự án đã bổ sung cờ `-D_NETBSD_SOURCE` và sử dụng cú pháp chuẩn POSIX nên tương thích 100% với công cụ `make` mặc định của NetBSD (`bmake`) cũng như `gmake`.
+*Lưu ý:* `Makefile` của dự án đã bổ sung cờ `-D_NETBSD_SOURCE` và sử dụng cú pháp chuẩn POSIX nên tương thích với công cụ `make` mặc định của NetBSD (`bmake`) cũng như `gmake`.
 
 #### 3. Chạy và kiểm thử trên NetBSD
 * Chạy thử các câu lệnh:
