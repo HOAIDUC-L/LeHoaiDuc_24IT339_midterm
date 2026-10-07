@@ -37,8 +37,6 @@ Chương trình được thiết kế bám sát tuyệt đối theo **tài liệ
 
 ## 3. Hướng dẫn biên dịch và chạy (Quick Start)
 
-Dưới đây là hướng dẫn từng bước chi tiết dạng "cầm tay chỉ việc" để bạn có thể tải về, biên dịch, chạy thử và kiểm tra toàn diện chương trình trên môi trường Linux/Ubuntu.
-
 ### Bước 1: Clone repo từ GitHub về máy và chuyển vào thư mục dự án
 Mở cửa sổ dòng lệnh Terminal và thực hiện:
 ```bash
@@ -56,13 +54,13 @@ make
 * Trình biên dịch sử dụng: `CC = cc` (tương thích cả GCC và Clang).
 * Cờ biên dịch nghiêm ngặt:
   ```makefile
-  CFLAGS = -Wall -Wextra -Werror -std=c99 -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE -Iinclude
+  CFLAGS = -Wall -Wextra -Werror -Iinclude -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE -D_NETBSD_SOURCE
   ```
   - `-Wall -Wextra`: Bật toàn bộ các cảnh báo biên dịch cơ bản và mở rộng.
   - `-Werror`: Chuyển tất cả cảnh báo thành lỗi biên dịch, đảm bảo mã nguồn sạch sẽ tuyệt đối.
-  - `-std=c99`: Tuân thủ nghiêm ngặt tiêu chuẩn ngôn ngữ C99.
-  - `-D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE`: Kích hoạt chuẩn POSIX.1-2008 và giao diện hệ thống UNIX (cho phép dùng `lstat`, `major`, `minor`, `st_blocks`,...).
   - `-Iinclude`: Khai báo đường dẫn chứa các file header `.h`.
+  - `-D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE`: Kích hoạt chuẩn POSIX.1-2008 và giao diện hệ thống UNIX chuẩn (cho phép dùng `lstat`, `major`, `minor`, `st_blocks`,...).
+  - `-D_NETBSD_SOURCE`: Tối ưu hóa tính tương thích trên hệ điều hành NetBSD và các hệ thống dòng BSD.
 * Quá trình biên dịch sẽ tạo riêng từng file đối tượng `.o` trong thư mục `src/` (`main.o`, `options.o`, `file_info.o`, `display.o`, `sort.o`, `traverse.o`) và liên kết chúng thành file thực thi duy nhất là `./ls`.
 
 ### Bước 3: Chạy thử các câu lệnh cơ bản và nâng cao

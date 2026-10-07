@@ -1,11 +1,13 @@
 #include "display.h"
-
+#include <sys/types.h>
+#if defined(__linux__)
+#include <sys/sysmacros.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <time.h>
-#include <sys/sysmacros.h>
 
 void display_format_mode(mode_t mode, char *buf)
 {
