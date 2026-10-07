@@ -45,7 +45,7 @@ cd LeHoaiDuc_24IT339_midterm
 ```
 
 ### Bước 2: Biên dịch chương trình bằng lệnh `make`
-Dự án được trang bị sẵn một `Makefile` chuyên nghiệp. Để biên dịch, bạn chỉ cần chạy:
+Dự án được trang bị sẵn một `Makefile`. Để biên dịch, bạn chỉ cần chạy:
 ```bash
 make
 ```
@@ -177,7 +177,7 @@ make clean
 
 ### Hướng dẫn dành riêng cho BSD / Máy ảo NetBSD (VirtualBox / QEMU)
 
-Nếu bạn hoặc giảng viên kiểm thử chương trình trực tiếp trên môi trường **NetBSD** (hoặc FreeBSD) cài đặt trên máy thật hoặc máy ảo (VirtualBox / QEMU / VMware), các bước thực hiện cực kỳ đơn giản như sau:
+Nếu bạn kiểm thử chương trình trực tiếp trên môi trường **NetBSD** (hoặc FreeBSD) cài đặt trên máy thật hoặc máy ảo (VirtualBox / QEMU / VMware), các bước thực hiện cực kỳ đơn giản như sau:
 
 #### 1. Đưa mã nguồn vào máy ảo NetBSD
 Tùy thuộc vào cấu hình mạng của máy ảo, bạn có thể chọn 1 trong 3 cách sau:
@@ -389,8 +389,7 @@ Dự án đã được kiểm tra nghiêm ngặt với 15 bộ kịch bản ki�
 
 ## 8. Kết luận
 
-Dự án cài đặt thành công công cụ `ls(1)` đáp ứng 100% các yêu cầu khắt khe của Đề án Giữa kỳ:
+Dự án cài đặt thành công công cụ `ls(1)` đáp ứng các yêu cầu:
 - Đúng chuẩn C99 / POSIX, kiến trúc mô-đun rõ ràng.
 - Đầy đủ 19 cờ và mọi quy tắc ưu tiên theo tài liệu gốc.
-- Vượt qua toàn bộ các ca kiểm thử biên và kiểm tra rò rỉ bộ nhớ.
-- Tài liệu báo cáo chi tiết, mạch lạc và sẵn sàng để chấm điểm.
+- Tài liệu báo cáo chi tiết, mạch lạc .
