@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 set -e
 
 echo "=================================================="
@@ -28,8 +28,8 @@ ln -s "$TEST_DIR/nonexistent_target" "$TEST_DIR/broken_symlink"
 
 # File with spaces and special characters
 touch "$TEST_DIR/file with spaces.txt"
-# Non-printable character in filename (ASCII 1)
-touch "$TEST_DIR/file"$'\001'"nonprint.txt"
+# Non-printable character in filename (ASCII 1) - portable across POSIX sh and bash
+touch "$TEST_DIR/$(printf 'file\001nonprint.txt')"
 
 # FIFO
 mkfifo "$TEST_DIR/test_fifo" || true
@@ -100,7 +100,7 @@ Q_OUT=$(./ls -q "$TEST_DIR")
 echo "$Q_OUT" | grep -q "file?nonprint.txt"
 
 W_OUT=$(./ls -w "$TEST_DIR")
-echo "$W_OUT" | grep -q "file"$'\001'"nonprint.txt"
+echo "$W_OUT" | grep -q "$(printf 'file\001nonprint.txt')"
 
 echo "--- Test 12: Empty directory ---"
 ./ls "$TEST_DIR/empty_dir"

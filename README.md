@@ -175,6 +175,58 @@ Khi muốn xóa toàn bộ các file `.o` và file nhị phân `./ls` để đư
 make clean
 ```
 
+### Hướng dẫn dành riêng cho BSD / Máy ảo NetBSD (VirtualBox / QEMU)
+
+Nếu bạn hoặc giảng viên kiểm thử chương trình trực tiếp trên môi trường **NetBSD** (hoặc FreeBSD) cài đặt trên máy thật hoặc máy ảo (VirtualBox / QEMU / VMware), các bước thực hiện cực kỳ đơn giản như sau:
+
+#### 1. Đưa mã nguồn vào máy ảo NetBSD
+Tùy thuộc vào cấu hình mạng của máy ảo, bạn có thể chọn 1 trong 3 cách sau:
+
+* **Cách 1: Sử dụng lệnh `ftp(1)` có sẵn của NetBSD (Không cần cài thêm gói gì):**
+  NetBSD tích hợp sẵn công cụ dòng lệnh `ftp` hỗ trợ tải qua giao thức HTTP/HTTPS rất tiện lợi:
+  ```sh
+  ftp https://github.com/HOAIDUC-L/LeHoaiDuc_24IT339_midterm/archive/refs/heads/main.tar.gz
+  tar -xzf main.tar.gz
+  cd LeHoaiDuc_24IT339_midterm-main
+  ```
+
+* **Cách 2: Clone trực tiếp bằng `git` (Nếu máy ảo đã cài git):**
+  ```sh
+  # Cài đặt git qua pkgin nếu chưa có:
+  pkgin update && pkgin install git
+
+  # Clone repo và chuyển vào thư mục:
+  git clone https://github.com/HOAIDUC-L/LeHoaiDuc_24IT339_midterm.git
+  cd LeHoaiDuc_24IT339_midterm
+  ```
+
+* **Cách 3: Sao chép từ máy Host sang máy ảo NetBSD qua SSH / SCP:**
+  Nếu máy ảo bật dịch vụ SSH (ví dụ dùng NAT port forwarding sang cổng 2222 của Host):
+  ```sh
+  # Chạy lệnh này trên máy Host (Linux / macOS / Windows Terminal):
+  scp -P 2222 -r LeHoaiDuc_24IT339_midterm root@127.0.0.1:/root/
+  ```
+
+#### 2. Biên dịch trên NetBSD
+Hệ điều hành NetBSD có sẵn trình biên dịch C (`cc` / `gcc`) và tiện ích `make` trong hệ thống cơ sở (Base System Developer Tools). Bạn không cần cài đặt thêm công cụ biên dịch nào:
+```sh
+make clean && make
+```
+*Lưu ý:* `Makefile` của dự án đã bổ sung cờ `-D_NETBSD_SOURCE` và sử dụng cú pháp chuẩn POSIX nên tương thích 100% với công cụ `make` mặc định của NetBSD (`bmake`) cũng như `gmake`.
+
+#### 3. Chạy và kiểm thử trên NetBSD
+* Chạy thử các câu lệnh:
+  ```sh
+  ./ls -la
+  ./ls -lh
+  ./ls -F
+  ```
+* Chạy bộ kiểm thử tự động 15 bài test:
+  ```sh
+  make test
+  ```
+  *(Kịch bản kiểm thử `tests/run_tests.sh` được lập trình hoàn toàn bằng chuẩn POSIX `/bin/sh`, tương thích trực tiếp với shell mặc định của NetBSD mà không bắt buộc phải cài đặt bash).*
+
 ---
 
 ## 4. Danh sách 19 cờ (Options) và Quy tắc ưu tiên theo NetBSD 10.1
