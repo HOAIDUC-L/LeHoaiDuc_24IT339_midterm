@@ -11,6 +11,8 @@ int options_init(Options *opts)
         return -1;
     }
 
+    /* -C is default when output is to a terminal; -1 is default when not */
+    opts->format = isatty(STDOUT_FILENO) ? FORMAT_COLUMN : FORMAT_SINGLE_COLUMN;
     opts->show_all = 0;
     /* -A is always set for the super-user */
     opts->almost_all = (geteuid() == 0) ? 1 : 0;
@@ -61,8 +63,13 @@ int options_parse(Options *opts, int argc, char *argv[], int *optind_out)
     /* Reset optind for POSIX getopt parsing */
     optind = 1;
 
-    while ((ch = getopt(argc, argv, "AacdFfhiklnqRrSstuw")) != -1) {
+    while ((ch = getopt(argc, argv, "1AacCdFfhiklmnqRrSstuwx")) != -1) {
         switch (ch) {
+        case '1':
+            /* -1, -C, -x, -m, -l, -n override each other */
+            opts->format = FORMAT_SINGLE_COLUMN;
+            opts->long_format = 0;
+            break;
         case 'A':
             opts->almost_all = 1;
             break;
@@ -72,6 +79,11 @@ int options_parse(Options *opts, int argc, char *argv[], int *optind_out)
         case 'c':
             /* -c and -u override each other */
             opts->time_field = TIME_STATUS_CHANGE;
+            break;
+        case 'C':
+            /* -1, -C, -x, -m, -l, -n override each other */
+            opts->format = FORMAT_COLUMN;
+            opts->long_format = 0;
             break;
         case 'd':
             /* -d and -R override each other */
@@ -99,12 +111,19 @@ int options_parse(Options *opts, int argc, char *argv[], int *optind_out)
             opts->block_size = 1024;
             break;
         case 'l':
-            /* -l and -n override each other */
+            /* -l, -n, -1, -C, -x, -m override each other */
+            opts->format = FORMAT_LONG;
             opts->long_format = 1;
             opts->numeric_ids = 0;
             break;
+        case 'm':
+            /* -1, -C, -x, -m, -l, -n override each other */
+            opts->format = FORMAT_STREAM;
+            opts->long_format = 0;
+            break;
         case 'n':
-            /* -l and -n override each other */
+            /* -l, -n, -1, -C, -x, -m override each other */
+            opts->format = FORMAT_LONG;
             opts->long_format = 1;
             opts->numeric_ids = 1;
             break;
@@ -136,6 +155,11 @@ int options_parse(Options *opts, int argc, char *argv[], int *optind_out)
         case 'w':
             /* -w and -q override each other */
             opts->non_printable_as_q = 0;
+            break;
+        case 'x':
+            /* -1, -C, -x, -m, -l, -n override each other */
+            opts->format = FORMAT_COLUMN_ACROSS;
+            opts->long_format = 0;
             break;
         case '?':
         default:

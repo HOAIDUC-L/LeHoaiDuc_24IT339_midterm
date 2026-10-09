@@ -128,6 +128,38 @@ if [ $ERR_STATUS -eq 0 ]; then
     exit 1
 fi
 
+echo "--- Test 16: Formatting options (-1, -C, -x, -m) and precedence ---"
+ONE_OUT=$(./ls -1 "$TEST_DIR")
+echo "$ONE_OUT" | grep -q "^file1\.txt$"
+
+M_OUT=$(./ls -m "$TEST_DIR")
+echo "$M_OUT" | grep -q "file1\.txt, "
+
+COL_OUT=$(COLUMNS=80 ./ls -C "$TEST_DIR")
+echo "$COL_OUT" | grep -q "file1\.txt"
+
+ACROSS_OUT=$(COLUMNS=80 ./ls -x "$TEST_DIR")
+echo "$ACROSS_OUT" | grep -q "file1\.txt"
+
+# Test overrides between formats
+L_THEN_1=$(./ls -l -1 "$TEST_DIR")
+if echo "$L_THEN_1" | grep -q "^total "; then
+    echo "ERROR: -1 should override -l"
+    exit 1
+fi
+
+ONE_THEN_L=$(./ls -1 -l "$TEST_DIR")
+echo "$ONE_THEN_L" | grep -q "^total "
+
+C_THEN_M=$(./ls -C -m "$TEST_DIR")
+echo "$C_THEN_M" | grep -q ", "
+
+M_THEN_1=$(./ls -m -1 "$TEST_DIR")
+if echo "$M_THEN_1" | grep -q ", "; then
+    echo "ERROR: -1 should override -m"
+    exit 1
+fi
+
 echo "=================================================="
 echo "All tests passed successfully!"
 echo "=================================================="

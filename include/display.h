@@ -54,7 +54,8 @@ void display_print_name(const char *name, const Options *opts);
 
 /*
  * Formats and prints a list of FileInfo objects to stdout:
- * - Manages column widths for alignment in -l, -i, and -s
+ * - Manages formats: single column (-1), columns down (-C), columns across (-x), stream (-m), long (-l/-n)
+ * - Manages column widths for alignment in -l, -i, -s, -C, and -x
  * - Prints "total <blocks/size>" header if is_dir_contents and (-l or (-s on terminal))
  * - Handles device major/minor numbers in place of size for special device files
  * - Displays symlink targets preceded by " -> " in long format

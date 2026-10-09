@@ -8,6 +8,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <time.h>
+#include <sys/ioctl.h>
 
 void display_format_mode(mode_t mode, char *buf)
 {
@@ -166,6 +167,185 @@ static int get_uint64_digits(uint64_t val)
     return digits;
 }
 
+static int get_terminal_width(void)
+{
+    const char *p = getenv("COLUMNS");
+    if (p != NULL && *p != '\0') {
+        char *endptr = NULL;
+        long cols = strtol(p, &endptr, 10);
+        if (endptr != p && cols > 0) {
+            return (int)cols;
+        }
+    }
+
+    struct winsize ws;
+    if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == 0 && ws.ws_col > 0) {
+        return (int)ws.ws_col;
+    }
+
+    return 80;
+}
+
+static int print_an_entry(const FileInfo *info, const Options *opts, int inode_width, int block_width)
+{
+    int chcnt = 0;
+
+    if (!info->stat_ok) {
+        display_print_name(info->name, opts);
+        return (int)strlen(info->name);
+    }
+
+    if (opts->inode) {
+        chcnt += printf("%*ju ", inode_width, (uintmax_t)info->st.st_ino);
+    }
+
+    if (opts->show_blocks) {
+        char blk_buf[32];
+        if (opts->human_readable) {
+            display_humanize_number(blk_buf, sizeof(blk_buf), (int64_t)info->st.st_blocks * 512);
+        } else {
+            long bsz = opts->block_size > 0 ? opts->block_size : 512;
+            uint64_t bcount = ((uint64_t)info->st.st_blocks * 512 + bsz - 1) / bsz;
+            snprintf(blk_buf, sizeof(blk_buf), "%llu", (unsigned long long)bcount);
+        }
+        chcnt += printf("%*s ", block_width, blk_buf);
+    }
+
+    display_print_name(info->name, opts);
+    chcnt += (int)strlen(info->name);
+
+    if (opts->classify) {
+        char c = display_get_classify_char(info->st.st_mode);
+        if (c != '\0') {
+            putchar(c);
+            chcnt += 1;
+        }
+    }
+
+    return chcnt;
+}
+
+static void print_single_column(const FileInfoList *list, const Options *opts, int inode_width, int block_width)
+{
+    for (size_t i = 0; i < list->count; ++i) {
+        print_an_entry(list->items[i], opts, inode_width, block_width);
+        putchar('\n');
+    }
+}
+
+static void print_column(const FileInfoList *list, const Options *opts, int maxlen, int inode_width, int block_width)
+{
+    int termwidth = get_terminal_width();
+    int colwidth = maxlen;
+    if (opts->inode) {
+        colwidth += inode_width + 1;
+    }
+    if (opts->show_blocks) {
+        colwidth += block_width + 1;
+    }
+    if (opts->classify) {
+        colwidth += 1;
+    }
+    colwidth += 1; /* Space between columns */
+
+    if (termwidth < 2 * colwidth) {
+        print_single_column(list, opts, inode_width, block_width);
+        return;
+    }
+
+    int numcols = termwidth / colwidth;
+    colwidth = termwidth / numcols; /* spread out if possible */
+    int numrows = ((int)list->count + numcols - 1) / numcols;
+
+    for (int row = 0; row < numrows; ++row) {
+        int base = row;
+        for (int col = 0; col < numcols; ++col) {
+            int chcnt = print_an_entry(list->items[base], opts, inode_width, block_width);
+            base += numrows;
+            if (base >= (int)list->count) {
+                break;
+            }
+            while (chcnt++ < colwidth) {
+                putchar(' ');
+            }
+        }
+        putchar('\n');
+    }
+}
+
+static void print_column_across(const FileInfoList *list, const Options *opts, int maxlen, int inode_width, int block_width)
+{
+    int termwidth = get_terminal_width();
+    int colwidth = maxlen;
+    if (opts->inode) {
+        colwidth += inode_width + 1;
+    }
+    if (opts->show_blocks) {
+        colwidth += block_width + 1;
+    }
+    if (opts->classify) {
+        colwidth += 1;
+    }
+    colwidth += 1;
+
+    if (termwidth < 2 * colwidth) {
+        print_single_column(list, opts, inode_width, block_width);
+        return;
+    }
+
+    int numcols = termwidth / colwidth;
+    colwidth = termwidth / numcols;
+
+    int col = 0;
+    for (size_t i = 0; i < list->count; ++i) {
+        if (col >= numcols) {
+            putchar('\n');
+            col = 0;
+        }
+        int chcnt = print_an_entry(list->items[i], opts, inode_width, block_width);
+        if (col + 1 < numcols && i + 1 < list->count) {
+            while (chcnt++ < colwidth) {
+                putchar(' ');
+            }
+        }
+        col++;
+    }
+    putchar('\n');
+}
+
+static void print_stream(const FileInfoList *list, const Options *opts, int inode_width, int block_width)
+{
+    int termwidth = get_terminal_width();
+    int extwidth = 0;
+    if (opts->inode) {
+        extwidth += inode_width + 1;
+    }
+    if (opts->show_blocks) {
+        extwidth += block_width + 1;
+    }
+    if (opts->classify) {
+        extwidth += 1;
+    }
+
+    int col = 0;
+    for (size_t i = 0; i < list->count; ++i) {
+        const FileInfo *info = list->items[i];
+        if (col > 0) {
+            putchar(',');
+            col++;
+            if (col + 1 + extwidth + (int)strlen(info->name) >= termwidth) {
+                putchar('\n');
+                col = 0;
+            } else {
+                putchar(' ');
+                col++;
+            }
+        }
+        col += print_an_entry(info, opts, inode_width, block_width);
+    }
+    putchar('\n');
+}
+
 void display_file_list(const FileInfoList *list, const Options *opts, int is_dir_contents)
 {
     if (list == NULL) {
@@ -183,17 +363,23 @@ void display_file_list(const FileInfoList *list, const Options *opts, int is_dir
         return;
     }
 
-    /* 1. Calculate column widths and total blocks */
+    /* 1. Calculate column widths, max length, and total blocks */
     int inode_width = 0;
     int block_width = 0;
     int link_width = 0;
     int owner_width = 0;
     int group_width = 0;
     int size_width = 0;
+    int maxlen = 0;
     uint64_t total_blocks_512 = 0;
 
     for (size_t i = 0; i < list->count; ++i) {
         const FileInfo *info = list->items[i];
+        int nlen = (int)strlen(info->name);
+        if (nlen > maxlen) {
+            maxlen = nlen;
+        }
+
         if (!info->stat_ok) {
             continue;
         }
@@ -269,33 +455,33 @@ void display_file_list(const FileInfoList *list, const Options *opts, int is_dir
         }
     }
 
-    /* 3. Print each file entry */
-    for (size_t i = 0; i < list->count; ++i) {
-        const FileInfo *info = list->items[i];
+    /* 3. Output entries according to selected format */
+    if (opts->format == FORMAT_LONG) {
+        for (size_t i = 0; i < list->count; ++i) {
+            const FileInfo *info = list->items[i];
 
-        if (!info->stat_ok) {
-            display_print_name(info->name, opts);
-            putchar('\n');
-            continue;
-        }
-
-        if (opts->inode) {
-            printf("%*ju ", inode_width, (uintmax_t)info->st.st_ino);
-        }
-
-        if (opts->show_blocks) {
-            char blk_buf[32];
-            if (opts->human_readable) {
-                display_humanize_number(blk_buf, sizeof(blk_buf), (int64_t)info->st.st_blocks * 512);
-            } else {
-                long bsz = opts->block_size > 0 ? opts->block_size : 512;
-                uint64_t bcount = ((uint64_t)info->st.st_blocks * 512 + bsz - 1) / bsz;
-                snprintf(blk_buf, sizeof(blk_buf), "%llu", (unsigned long long)bcount);
+            if (!info->stat_ok) {
+                display_print_name(info->name, opts);
+                putchar('\n');
+                continue;
             }
-            printf("%*s ", block_width, blk_buf);
-        }
 
-        if (opts->long_format) {
+            if (opts->inode) {
+                printf("%*ju ", inode_width, (uintmax_t)info->st.st_ino);
+            }
+
+            if (opts->show_blocks) {
+                char blk_buf[32];
+                if (opts->human_readable) {
+                    display_humanize_number(blk_buf, sizeof(blk_buf), (int64_t)info->st.st_blocks * 512);
+                } else {
+                    long bsz = opts->block_size > 0 ? opts->block_size : 512;
+                    uint64_t bcount = ((uint64_t)info->st.st_blocks * 512 + bsz - 1) / bsz;
+                    snprintf(blk_buf, sizeof(blk_buf), "%llu", (unsigned long long)bcount);
+                }
+                printf("%*s ", block_width, blk_buf);
+            }
+
             char mode_str[16];
             display_format_mode(info->st.st_mode, mode_str);
 
@@ -323,22 +509,38 @@ void display_file_list(const FileInfoList *list, const Options *opts, int is_dir
             }
 
             printf("%s ", time_str);
-        }
 
-        display_print_name(info->name, opts);
+            display_print_name(info->name, opts);
 
-        if (opts->classify) {
-            char c = display_get_classify_char(info->st.st_mode);
-            if (c != '\0') {
-                putchar(c);
+            if (opts->classify) {
+                char c = display_get_classify_char(info->st.st_mode);
+                if (c != '\0') {
+                    putchar(c);
+                }
             }
-        }
 
-        if (opts->long_format && info->is_symlink && info->link_target != NULL) {
-            printf(" -> ");
-            display_print_name(info->link_target, opts);
-        }
+            if (info->is_symlink && info->link_target != NULL) {
+                printf(" -> ");
+                display_print_name(info->link_target, opts);
+            }
 
-        putchar('\n');
+            putchar('\n');
+        }
+    } else {
+        switch (opts->format) {
+        case FORMAT_COLUMN:
+            print_column(list, opts, maxlen, inode_width, block_width);
+            break;
+        case FORMAT_COLUMN_ACROSS:
+            print_column_across(list, opts, maxlen, inode_width, block_width);
+            break;
+        case FORMAT_STREAM:
+            print_stream(list, opts, inode_width, block_width);
+            break;
+        case FORMAT_SINGLE_COLUMN:
+        default:
+            print_single_column(list, opts, inode_width, block_width);
+            break;
+        }
     }
 }

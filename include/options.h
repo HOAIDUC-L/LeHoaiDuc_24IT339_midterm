@@ -15,7 +15,16 @@ typedef enum {
     TIME_ACCESS            /* -u: time of last access (st_atime) */
 } TimeField;
 
+typedef enum {
+    FORMAT_SINGLE_COLUMN = 0, /* Default or -1: one entry per line */
+    FORMAT_LONG,              /* -l or -n: long listing */
+    FORMAT_COLUMN,            /* -C: multi-column sorted down columns */
+    FORMAT_COLUMN_ACROSS,     /* -x: multi-column sorted across rows */
+    FORMAT_STREAM             /* -m: comma-separated stream */
+} DisplayFormat;
+
 typedef struct {
+    DisplayFormat format;   /* -1, -C, -x, -m, -l, -n */
     int show_all;           /* -a: include . and .. */
     int almost_all;         /* -A: list all entries except for . and .. */
     int directory_as_file;  /* -d: directories listed as plain files */

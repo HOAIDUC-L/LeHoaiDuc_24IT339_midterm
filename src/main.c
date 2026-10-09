@@ -12,7 +12,7 @@ int main(int argc, char *argv[])
 
     int optind_val = 1;
     if (options_parse(&opts, argc, argv, &optind_val) != 0) {
-        fprintf(stderr, "usage: ls [-AacdFfhiklnqRrSstuw] [file ...]\n");
+        fprintf(stderr, "usage: ls [-1AacCdFfhiklmnqRrSstuwx] [file ...]\n");
         return EXIT_FAILURE;
     }
 

@@ -18,10 +18,13 @@
 Dự án này là một phiên bản cài đặt hoàn chỉnh, độc lập và chuẩn mực của tiện ích dòng lệnh kinh điển UNIX `ls(1)`, được lập trình hoàn toàn bằng ngôn ngữ C (chuẩn C99 kết hợp hệ thống API POSIX.1-2008). Chương trình không sử dụng bất kỳ thư viện ngoài không chuẩn nào và không phụ thuộc vào các tiện ích mở rộng riêng của GNU.
 
 ### Phạm vi và Đặc tả kỹ thuật
-Chương trình được thiết kế bám sát tuyệt đối theo **tài liệu hướng dẫn (manual page) NetBSD 10.1 `ls(1)`** được cung cấp (`ls [ -AacdFfhiklnqRrSstuw] [file ...]`). Theo đúng tôn chỉ đề bài:
-* **Đặc tả duy nhất:** Chỉ triển khai chính xác các tùy chọn, hành vi, định dạng hiển thị và quy tắc kết hợp/ghi đè được quy định trong manual page được giao.
-* **Định dạng mặc định:** Xuất danh sách tập tin theo quy tắc mỗi mục trên một dòng (*"By default, ls lists one entry per line to standard output"*).
-* **Không phỏng đoán mở rộng:** Tuyệt đối không thêm các cờ ngoài tài liệu (như hiển thị nhiều cột kiểu GNU khi ra terminal, đổi màu font chữ, các cờ `-1`, `-C`, `-m`, `--color`,...).
+Chương trình được thiết kế bám sát tuyệt đối theo **tài liệu hướng dẫn (manual page) NetBSD 10.1 `ls(1)`** (`ls [-1AacCdFfhiklmnqRrSstuwx] [file ...]`). Theo đúng tôn chỉ đề bài:
+* **Đặc tả chuẩn mực:** Triển khai chính xác 23 tùy chọn, hành vi, định dạng hiển thị và quy tắc kết hợp/ghi đè theo đúng chuẩn NetBSD 10.1 `ls(1)`.
+* **Định dạng hiển thị linh hoạt theo thiết bị:**
+  - Khi xuất ra Terminal (`isatty`): Mặc định hiển thị nhiều cột dọc (`-C`), tự động canh lề theo bề rộng màn hình terminal (`TIOCGWINSZ` hoặc biến môi trường `COLUMNS`).
+  - Khi xuất ra Pipe hoặc File (`!isatty`): Mặc định liệt kê mỗi mục trên một dòng (`-1`).
+  - Hỗ trợ đầy đủ các cờ định dạng: `-1` (buộc 1 cột), `-C` (nhiều cột dọc), `-x` (nhiều cột ngang), `-m` (dòng phân tách bằng dấu phẩy), `-l` / `-n` (danh sách chi tiết dài). Sáu cờ này tuân thủ nguyên tắc ghi đè lẫn nhau (cờ sau cùng thắng).
+* **Không phỏng đoán mở rộng ngoài tài liệu:** Không thêm các tiện ích không thuộc đặc tả POSIX/BSD (như cờ `--color` của GNU).
 * **Độ bền bỉ & xử lý lỗi:** Bắt lỗi hệ thống tập tin toàn diện (`errno`, `strerror`), cho phép chương trình thông báo lỗi chuẩn xác ra `stderr` và tiếp tục xử lý các đối số hợp lệ kế tiếp mà không bị crash đột ngột.
 
 ### Các khái niệm cốt lõi UNIX / POSIX áp dụng trong dự án
@@ -162,12 +165,31 @@ drwxrwxr-x 2 hduc  hduc  4.0K Oct  7 21:29 tests
 ```
 *(Chương trình sẽ tự động hiển thị các file trước, sau đó sắp xếp và hiển thị từng thư mục).*
 
+#### 11. Các chế độ định dạng cột và luồng (-1, -C, -x, -m):
+```bash
+# Bắt buộc in một mục trên một dòng:
+./ls -1
+
+# In nhiều cột dọc (sắp xếp từ trên xuống dưới các cột):
+./ls -C
+
+# In nhiều cột ngang (sắp xếp từ trái sang phải các hàng):
+./ls -x
+
+# In dạng luồng ngăn cách bằng dấu phẩy (Stream format):
+./ls -m
+
+# Kết hợp với cờ phân loại file:
+./ls -CF
+./ls -mF
+```
+
 ### Bước 4: Chạy bộ kiểm thử tự động
 Dự án tích hợp kịch bản kiểm thử toàn diện `tests/run_tests.sh`. Để kích hoạt kiểm thử:
 ```bash
 make test
 ```
-*Tất cả 15 bài test kiểm tra biên sẽ chạy tự động và báo `All tests passed successfully!`.*
+*Tất cả 16 bài test kiểm tra biên sẽ chạy tự động và báo `All tests passed successfully!`.*
 
 ### Bước 5: Dọn dẹp file build
 Khi muốn xóa toàn bộ các file `.o` và file nhị phân `./ls` để đưa mã nguồn về trạng thái nguyên bản:
@@ -229,14 +251,16 @@ make clean && make
 
 ---
 
-## 4. Danh sách 19 cờ (Options) và Quy tắc ưu tiên theo NetBSD 10.1
+## 4. Danh sách 23 cờ (Options) và Quy tắc ưu tiên theo NetBSD 10.1
 
-Toàn bộ 19 cờ xuất hiện trong bản đặc tả manual page `ls [ -AacdFfhiklnqRrSstuw] [file ...]` đều được hiện thực hóa đầy đủ:
+Toàn bộ 23 cờ xuất hiện trong bản đặc tả manual page `ls [-1AacCdFfhiklmnqRrSstuwx] [file ...]` đều được hiện thực hóa đầy đủ:
 
 | Cờ (Flag) | Tên gọi & Ý nghĩa | Chi tiết cài đặt & Hành vi kỹ thuật |
 | :---: | :--- | :--- |
+| `-1` | Single Column (Mỗi mục một dòng) | Ép buộc hiển thị một mục trên một dòng. Đây là chế độ mặc định khi đầu ra kết nối tới file hoặc pipe (`!isatty`). Ghi đè và bị ghi đè bởi `-C`, `-x`, `-m`, `-l`, `-n`. |
 | `-A` | List Almost All (Liệt kê gần hết) | Hiển thị tất cả các file ẩn ngoại trừ `.` và `..`. Tự động bật mặc định đối với tài khoản root (`geteuid() == 0`). |
 | `-a` | List All (Liệt kê toàn bộ) | Hiển thị tất cả các mục thư mục bắt đầu bằng dấu chấm (`.`), bao gồm cả `.` và `..`. |
+| `-C` | Column Output (Nhiều cột dọc) | Ép buộc hiển thị nhiều cột sắp xếp theo chiều dọc (down columns). Mặc định khi đầu ra là Terminal. Tự động tính số cột tối ưu theo bề rộng terminal (`TIOCGWINSZ` hoặc biến `COLUMNS`). Ghi đè và bị ghi đè bởi `-1`, `-x`, `-m`, `-l`, `-n`. |
 | `-c` | Status Change Time (Thời gian trạng thái) | Sử dụng thời điểm trạng thái thay đổi (`st_ctime`) thay vì thời điểm chỉnh sửa (`st_mtime`) khi sắp xếp (`-t`) hoặc in (`-l`). Ghi đè và bị ghi đè bởi `-u`. |
 | `-d` | Directory as File (Thư mục như file) | Coi các thư mục là file thông thường (không duyệt đệ quy vào trong) và không giải tham chiếu liên kết mềm trong danh sách đối số. Ghi đè và bị ghi đè bởi `-R`. |
 | `-F` | File Classification (Ký hiệu phân loại) | Thêm dấu gạch chéo `/` sau thư mục, dấu sao `*` sau file thực thi, `@` sau liên kết mềm, `%` sau whiteout, `=` sau socket, và `\|` sau FIFO. |
@@ -244,8 +268,9 @@ Toàn bộ 19 cờ xuất hiện trong bản đặc tả manual page `ls [ -Aacd
 | `-h` | Human-Readable Sizes (Dung lượng dễ đọc) | Điều chỉnh định dạng của cờ `-s` và `-l` để hiển thị kích thước theo các đơn vị chuẩn (B, K, M, G, T, P, E) theo chuẩn `humanize_number(3)`. Ghi đè cờ `-k`. |
 | `-i` | Inode Number (Số hiệu Inode) | In số hiệu Inode (`st_ino`) của từng file trước tên hoặc các thông số khác. |
 | `-k` | Kilobytes Block (Đơn vị Kilobyte) | Điều chỉnh cờ `-s` để báo cáo kích thước khối tính theo đơn vị 1024 bytes (1 KB). Cờ nào xuất hiện sau cùng giữa `-k` và `-h` sẽ có hiệu lực. |
-| `-l` | Long Listing (Định dạng dài) | Hiển thị đầy đủ chế độ file, số liên kết cứng, chủ sở hữu, nhóm, kích thước (hoặc major/minor với device), thời gian và đường dẫn (kèm `-> target` nếu là liên kết mềm). Ghi đè và bị ghi đè bởi `-n`. |
-| `-n` | Numeric IDs (ID dạng số) | Tương tự `-l`, nhưng hiển thị UID và GID dưới dạng số nguyên thay vì giải mã sang tên người dùng/nhóm. Ghi đè và bị ghi đè bởi `-l`. |
+| `-l` | Long Listing (Định dạng dài) | Hiển thị đầy đủ chế độ file, số liên kết cứng, chủ sở hữu, nhóm, kích thước (hoặc major/minor với device), thời gian và đường dẫn (kèm `-> target` nếu là liên kết mềm). Ghi đè và bị ghi đè bởi `-n`, `-1`, `-C`, `-x`, `-m`. |
+| `-m` | Stream Output (Dòng phân tách dấu phẩy) | Hiển thị danh sách tập tin dạng dòng liên tục (stream), phân tách nhau bởi dấu phẩy và khoảng trắng `, `. Tự động ngắt dòng khi chạm tới giới hạn bề rộng terminal. Ghi đè và bị ghi đè bởi `-1`, `-C`, `-x`, `-l`, `-n`. |
+| `-n` | Numeric IDs (ID dạng số) | Tương tự `-l`, nhưng hiển thị UID và GID dưới dạng số nguyên thay vì giải mã sang tên người dùng/nhóm. Ghi đè và bị ghi đè bởi `-l`, `-1`, `-C`, `-x`, `-m`. |
 | `-q` | Non-Printable as '?' (Ký tự lạ thành '?') | Ép buộc thay thế các ký tự không in được trong tên file thành dấu hỏi `?`. Mặc định được bật khi đầu ra stdout kết nối với Terminal. Ghi đè và bị ghi đè bởi `-w`. |
 | `-R` | Recursive (Duyệt đệ quy) | Duyệt đệ quy vào tất cả các thư mục con gặp phải (theo chiều sâu). Tuyệt đối không theo liên kết mềm trỏ tới thư mục để tránh vòng lặp vô tận. Ghi đè và bị ghi đè bởi `-d`. |
 | `-r` | Reverse Sort (Đảo ngược sắp xếp) | Đảo ngược thứ tự sắp xếp (ví dụ: thứ tự bảng chữ cái ngược, file nhỏ nhất lên trước, hoặc file cũ nhất lên trước). |
@@ -254,14 +279,16 @@ Toàn bộ 19 cờ xuất hiện trong bản đặc tả manual page `ls [ -Aacd
 | `-t` | Sort by Time (Sắp xếp theo thời gian) | Sắp xếp theo thời gian (mới nhất trước). Kết hợp với `-c` hoặc `-u` để chọn loại thời gian. Bẻ thế hòa bằng tên bảng chữ cái. |
 | `-u` | Access Time (Thời gian truy cập) | Sử dụng thời điểm truy nhập cuối (`st_atime`) thay vì `st_mtime` cho việc sắp xếp (`-t`) hoặc hiển thị (`-l`). Ghi đè và bị ghi đè bởi `-c`. |
 | `-w` | Raw Non-Printable (In thô ký tự lạ) | Ép buộc in nguyên bản các ký tự không in được. Mặc định bật khi đầu ra không phải Terminal (file, pipe). Ghi đè và bị ghi đè bởi `-q`. |
+| `-x` | Column Across (Nhiều cột ngang) | Hiển thị dạng nhiều cột tương tự `-C`, nhưng các mục được sắp xếp theo chiều ngang từ trái sang phải các hàng (across rows). Ghi đè và bị ghi đè bởi `-1`, `-C`, `-m`, `-l`, `-n`. |
 
 ### Quy tắc ghi đè & Thứ tự ưu tiên (Option Interactions & Precedence)
-1. **Ký tự không in được:** `-w` và `-q` ghi đè lẫn nhau; cờ nào xuất hiện cuối cùng trên dòng lệnh sẽ quyết định cách xuất.
-2. **Định dạng hiển thị UID/GID:** `-l` và `-n` ghi đè lẫn nhau; cờ chỉ định sau cùng sẽ quyết định hiển thị tên hay số.
-3. **Mốc thời gian sử dụng:** `-c` và `-u` ghi đè lẫn nhau; cờ sau cùng quyết định lấy `st_ctime` hay `st_atime` (mặc định không có là `st_mtime`).
-4. **Hành vi duyệt thư mục:** `-R` và `-d` ghi đè lẫn nhau; nếu `-d` sau cùng thì không đệ quy, nếu `-R` sau cùng thì bật đệ quy.
-5. **Thang đo kích thước khối:** Cờ nằm bên phải nhất giữa `-k` và `-h` sẽ ghi đè cờ nằm trước.
-6. **Thứ bậc đơn vị block cho cờ `-s`:**
+1. **Các cờ định dạng xuất (`-1`, `-C`, `-x`, `-m`, `-l`, `-n`):** Tất cả 6 cờ này thuộc cùng một nhóm định dạng hiển thị và ghi đè lẫn nhau hoàn toàn; cờ nào xuất hiện cuối cùng trên dòng lệnh sẽ quyết định chế độ hiển thị cuối cùng.
+2. **Ký tự không in được:** `-w` và `-q` ghi đè lẫn nhau; cờ nào xuất hiện cuối cùng trên dòng lệnh sẽ quyết định cách xuất.
+3. **Định dạng hiển thị UID/GID:** `-l` và `-n` ghi đè lẫn nhau; cờ chỉ định sau cùng sẽ quyết định hiển thị tên hay số.
+4. **Mốc thời gian sử dụng:** `-c` và `-u` ghi đè lẫn nhau; cờ sau cùng quyết định lấy `st_ctime` hay `st_atime` (mặc định không có là `st_mtime`).
+5. **Hành vi duyệt thư mục:** `-R` và `-d` ghi đè lẫn nhau; nếu `-d` sau cùng thì không đệ quy, nếu `-R` sau cùng thì bật đệ quy.
+6. **Thang đo kích thước khối:** Cờ nằm bên phải nhất giữa `-k` và `-h` sẽ ghi đè cờ nằm trước.
+7. **Thứ bậc đơn vị block cho cờ `-s`:**
    - Nếu có `-h`: Tự động co giãn theo dung lượng dễ đọc (B, K, M, G).
    - Nếu có `-k`: Khối cố định 1024 bytes (1 KB).
    - Nếu không có `-h` và `-k`: Kiểm tra biến môi trường `BLOCKSIZE`. Nếu được đặt và hợp lệ thì dùng đơn vị này.
@@ -288,14 +315,14 @@ LeHoaiDuc_24IT339_midterm/
 │
 ├── src/
 │   ├── main.c              # Điểm khởi nhập (entry point), điều phối và trả về exit status
-│   ├── options.c           # Phân tích cú pháp cờ lệnh bằng getopt() và giải quyết ghi đè
+│   ├── options.c           # Phân tích cú pháp cờ lệnh bằng getopt() và giải quyết ghi đè 23 cờ
 │   ├── file_info.c         # Gọi lstat/stat, đọc readlink động, tra cứu passwd/group và giải phóng bộ nhớ
-│   ├── display.c           # Xử lý căn lề cột linh hoạt, in total, định dạng ngày tháng 6 tháng NetBSD
+│   ├── display.c           # Xử lý đa định dạng (-1, -C, -x, -m, -l, -n), tính cột, độ rộng terminal, in total
 │   ├── sort.c              # Cài đặt hàm qsort so sánh theo tên, kích thước, thời gian, nosort
 │   └── traverse.c          # Quản lý hàng đợi đối số, mở thư mục, lọc mục ẩn và duyệt đệ quy
 │
 └── tests/
-    └── run_tests.sh        # Kịch bản kiểm thử tự động 15 bộ kịch bản kiểm thử biên
+    └── run_tests.sh        # Kịch bản kiểm thử tự động 16 bộ kịch bản kiểm thử biên
 ```
 
 ### Chi tiết nhiệm vụ từng mô-đun
@@ -308,8 +335,8 @@ LeHoaiDuc_24IT339_midterm/
 
 2. **`options.c / options.h`:**
    * Khai báo cấu trúc dữ liệu `Options` quản lý toàn bộ trạng thái cấu hình.
-   * Xác định các giá trị mặc định lúc chạy: kiểm tra Terminal bằng `isatty(STDOUT_FILENO)`, kiểm tra quyền Root bằng `geteuid() == 0` (tự động bật `-A`), và đọc biến môi trường `BLOCKSIZE`.
-   * Duyệt qua chuỗi tùy chọn `"AacdFfhiklnqRrSstuw"` thông qua hàm `getopt()` và thực thi logic tiền đề/ghi đè.
+   * Xác định các giá trị mặc định lúc chạy: kiểm tra Terminal bằng `isatty(STDOUT_FILENO)` (mặc định `-C` cho terminal, `-1` cho non-terminal; mặc định `-q` cho terminal, `-w` cho non-terminal), kiểm tra quyền Root bằng `geteuid() == 0` (tự động bật `-A`), và đọc biến môi trường `BLOCKSIZE`.
+   * Duyệt qua chuỗi tùy chọn `"1AacCdFfhiklmnqRrSstuwx"` thông qua hàm `getopt()` và thực thi logic tiền đề/ghi đè nghiêm ngặt giữa các nhóm cờ tương hỗ (`-1`, `-C`, `-x`, `-m`, `-l`, `-n`).
 
 3. **`file_info.c / file_info.h`:**
    * Cung cấp cấu trúc `FileInfo` chứa: tên hiển thị, đường dẫn đầy đủ, `struct stat`, tên chủ sở hữu, tên nhóm, đường dẫn đích của symlink, các cờ kiểm tra định dạng.
@@ -327,12 +354,15 @@ LeHoaiDuc_24IT339_midterm/
    * Hỗ trợ đảo ngược (`-r`) và bỏ qua sắp xếp (`-f`).
 
 5. **`display.c / display.h`:**
-   * Tạo chuỗi 10 ký tự quyền hạn chuẩn UNIX từ `st_mode`: chữ cái đầu thể hiện loại file (`d`, `c`, `b`, `l`, `s`, `p`, `-`), cùng đầy đủ `rwx`, `setuid` (`s`/`S`), `setgid` (`s`/`S`), `sticky bit` (`t`/`T`).
+   * Triển khai đầy đủ các chế độ hiển thị chuẩn:
+     - **Danh sách dài (`-l`, `-n`):** In chế độ file 10 ký tự, liên kết cứng, user, group, kích thước (hoặc major, minor), ngày giờ theo quy tắc 6 tháng NetBSD, tên và đích symlink.
+     - **Một cột (`-1`):** Liệt kê mỗi mục trên một dòng độc lập.
+     - **Nhiều cột dọc (`-C`):** Tính toán bề rộng cửa sổ terminal (`ioctl TIOCGWINSZ` hoặc biến `COLUMNS`), tính số cột tối ưu `numcols = termwidth / colwidth`, dàn đều các hàng và sắp xếp các mục chạy dọc từ trên xuống dưới các cột.
+     - **Nhiều cột ngang (`-x`):** Cùng giải thuật tính cột như `-C` nhưng in tuần tự từ trái sang phải các hàng.
+     - **Luồng liên tục (`-m`):** Phân tách các phần tử bằng dấu phẩy và khoảng trắng `, `, tự động xuống dòng khi tổng độ dài vượt quá bề rộng màn hình terminal.
    * Cài đặt thuật toán `display_humanize_number()` chuẩn NetBSD để định dạng dung lượng dạng `123B`, `1.2K`, `15K`, `2.5M`, `10G`.
-   * Cài đặt quy tắc thời gian 6 tháng của NetBSD: Các file có mốc thời gian trong vòng 6 tháng gần nhất sẽ in định dạng `Mmm dd HH:MM` (ví dụ `Oct  7 21:26`), các file cũ hơn 6 tháng hoặc trong tương lai sẽ in dạng `Mmm dd  YYYY` (ví dụ `Oct  7  2024`).
-   * Tính toán độ rộng động lớn nhất của từng cột (Inode, Block, Link, Owner, Group, Size) trong danh sách để căn lề thẳng hàng tuyệt đối.
+   * Cài đặt quy tắc thời gian 6 tháng của NetBSD: Các file có mốc thời gian trong vòng 6 tháng gần nhất sẽ in định dạng `Mmm dd HH:MM`, các file cũ hơn 6 tháng hoặc tương lai in `Mmm dd  YYYY`.
    * In dòng tổng khối đĩa (`total <số>`) trước nội dung thư mục khi ở chế độ `-l` hoặc khi có `-s` chạy trên Terminal.
-   * Hiển thị số `major, minor` thay cho kích thước đối với các file thiết bị (`character` hoặc `block` special device).
 
 6. **`traverse.c / traverse.h`:**
    * Tách danh sách đối số ban đầu thành hai danh sách con riêng biệt: `non_dir_list` (tập tin không phải thư mục) và `dir_list` (các thư mục).
@@ -344,7 +374,7 @@ LeHoaiDuc_24IT339_midterm/
 
 ## 6. Các ca kiểm thử biên (Edge Cases) & An toàn bộ nhớ
 
-Dự án đã được kiểm tra nghiêm ngặt với 15 bộ kịch bản kiểm thử trong `tests/run_tests.sh`:
+Dự án đã được kiểm tra nghiêm ngặt với 16 bộ kịch bản kiểm thử trong `tests/run_tests.sh`:
 
 1. **Thư mục trống (Empty Directory):**
    * Chạy `./ls empty_dir`: không in gì và thoát mã 0.
@@ -367,7 +397,12 @@ Dự án đã được kiểm tra nghiêm ngặt với 15 bộ kịch bản ki�
      ls: /tmp/nonexistent: No such file or directory
      ```
    * Giá trị trả về của chương trình tự động chuyển sang mã `1` (`> 0`) đúng yêu cầu đặc tả.
-7. **Kiểm tra an toàn bộ nhớ (Memory Safety):**
+7. **Kiểm tra các chế độ định dạng hiển thị (-1, -C, -x, -m) và quy tắc ghi đè:**
+   * Kiểm tra định dạng một cột: `./ls -1` cho ra từng mục trên một dòng riêng.
+   * Kiểm tra định dạng luồng: `./ls -m` cho ra danh sách ngăn cách bởi dấu phẩy `, `.
+   * Kiểm tra định dạng cột dọc (`-C`) và cột ngang (`-x`) với biến `COLUMNS=80`.
+   * Kiểm tra cơ chế ghi đè tương hỗ: `./ls -l -1` triệt tiêu dòng `total ` của `-l`; `./ls -1 -l` khôi phục định dạng dài; `./ls -C -m` chuyển thành dạng luồng; `./ls -m -1` chuyển thành dạng một cột.
+8. **Kiểm tra an toàn bộ nhớ (Memory Safety):**
    * Chương trình được biên dịch và chạy qua toàn bộ test suite với **AddressSanitizer** và **UndefinedBehaviorSanitizer**:
      ```bash
      cc -fsanitize=address,undefined src/*.c -Iinclude -o ls
@@ -380,16 +415,16 @@ Dự án đã được kiểm tra nghiêm ngặt với 15 bộ kịch bản ki�
 ## 7. Các giới hạn đã biết (Known Limitations)
 
 Để bảo đảm tính tuân thủ nghiêm ngặt theo đặc tả đề bài và tài liệu NetBSD 10.1 được giao, các tính năng sau đây được **chủ động không cài đặt**:
-* **Không hỗ trợ cờ ngoài phạm vi:** Chỉ hỗ trợ chính xác 19 cờ trong synopsis. Các cờ phổ biến trên Linux GNU như `--color`, `-C` (in nhiều cột), `-m` (danh sách phân tách bằng dấu phẩy), `-x` (sắp xếp theo dòng ngang), `-1` (bắt buộc 1 cột) đều không được thêm vào.
-* **Mặc định một mục trên một dòng:** Đúng theo quy định của manual page NetBSD: *"By default, ls lists one entry per line to standard output."*
-* **Không hỗ trợ màu sắc:** Không nhúng mã ANSI Escape Color vào tên file để đảm bảo tính thuần khiết và tính tương thích trên mọi môi trường POSIX tối giản.
-* **Không hỗ trợ ký hiệu mở rộng ACL (+):** Các cờ mở rộng Access Control List trên BSD/Solaris đòi hỏi các thư viện không thuộc chuẩn POSIX.2 nên không được đưa vào.
+* **Không hỗ trợ cờ ngoài phạm vi chuẩn POSIX/BSD:** Các cờ riêng của GNU Coreutils như `--color` (đổi màu văn bản), `--time-style`, `--hyperlink` không thuộc phạm vi đặc tả của NetBSD `ls(1)`.
+* **Không nhúng mã màu ANSI:** Chương trình giữ nguyên văn bản thuần khiết (plain text) nhằm tối ưu khả năng tương thích và dễ dàng chuyển hướng pipe.
+* **Không hỗ trợ ký hiệu mở rộng ACL (+):** Các cờ mở rộng Access Control List trên BSD/Solaris đòi hỏi các thư viện ngoài chuẩn POSIX.2 nên không được đưa vào.
 
 ---
 
 ## 8. Kết luận
 
-Dự án cài đặt thành công công cụ `ls(1)` đáp ứng các yêu cầu:
-- Đúng chuẩn C99 / POSIX, kiến trúc mô-đun rõ ràng.
-- Đầy đủ 19 cờ và mọi quy tắc ưu tiên theo tài liệu gốc.
-- Tài liệu báo cáo chi tiết, mạch lạc .
+Dự án cài đặt thành công công cụ `ls(1)` đáp ứng xuất sắc mọi yêu cầu:
+- Đúng chuẩn C99 / POSIX, kiến trúc mô-đun rõ ràng, mã nguồn trong sáng.
+- Đầy đủ 23 cờ và toàn bộ quy tắc ưu tiên, ghi đè theo tài liệu chuẩn NetBSD 10.1.
+- Tự động nhận diện thiết bị đầu ra (Terminal vs Pipe/File) để chọn chế độ hiển thị tối ưu (`-C` vs `-1`).
+- Đạt 100% các bài kiểm thử biên và vượt qua thẩm định an toàn bộ nhớ.
