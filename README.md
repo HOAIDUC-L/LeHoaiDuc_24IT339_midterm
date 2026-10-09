@@ -6,7 +6,7 @@
 
 * **Họ và tên:** Lê Hoài Đức
 * **Mã sinh viên:** 24IT339
-* **Học phần:** Linux & Phần mềm mã nguồn mở / Lập trình hệ thống nâng cao
+* **Học phần:** Lập trình hệ thống
 * **Đề tài:** Dự án giữa kỳ – Xây dựng công cụ UNIX `ls(1)` từ con số 0 (from scratch) bằng C
 * **Tên Repository:** `LeHoaiDuc_24IT339_midterm`
 * **Link GitHub:** [https://github.com/HOAIDUC-L/LeHoaiDuc_24IT339_midterm](https://github.com/HOAIDUC-L/LeHoaiDuc_24IT339_midterm)
